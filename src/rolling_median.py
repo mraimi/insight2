@@ -3,6 +3,22 @@ import json
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+# Checks if the new record can be inserted without pruning or reordering
+def windowCheck(date, window):
+	return True
+
+# Inserts an out of order record
+def insertRecord(record, window):
+	return None
+
+# Removes records that violate the 60-second window constraint
+# Appends the new record after sufficient pruning
+def pruneThenAdd(newRecord, window):
+	return None
+
+def getMedian(nums):
+	return None
+
 # theory for rolling median found here:
 # http://stackoverflow.com/questions/10657503/find-running-median-from-a-stream-of-integers
 
@@ -24,7 +40,9 @@ for line in data:
 	adjList[actor][1].add(target)
 	
 	if (windowCheck(date, window)):
+		window.append((target,actor,date))
 
+	print window
 	sys.exit()
 
 # date1 = datetime.strptime(json.loads(data.readline())['created_time'],'%Y-%m-%dT%H:%M:%SZ')
@@ -32,23 +50,6 @@ for line in data:
 # print (date1-date2).total_seconds()
 
 
-# Checks if the new record can be inserted without pruning or reordering
-def windowCheck(date, window):
 
-# Inserts an out of order record
-def insertRecord(record, window):
 
-# Removes records that violate the 60-second window constraint
-# Appends the new record after sufficient pruning
-def pruneThenAdd(newRecord, window):
-
-def getMedian(nums):
-# 	total = len(nums.keys())
-# 	if (!total):
-# 		return -1
-# 	even = (total%2 == 0)
-# 	medIndex = total/2 - 1
-# 	for i in xrange(0,medIndex):
-# 		if (total-nums[i] <= 0):
-# 			return i+1
 
