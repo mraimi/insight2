@@ -14,14 +14,13 @@ def windowCheck(newDate, window):
 # Inserts an out of order record
 def insertToWindow(record, window):
 	for i in xrange(0,len(window)):
-		if (record[2]-window[i][3].total_seconds() <= 0):
-			window.insert(i)
+		if ((record[2]-window[i][2]).total_seconds() <= 0):
+			window.insert(i, record)
 
 def insertKey(key, degKeys, degCounts):
 	# print 'key to add: ' + str(key)
 
 	if key in degKeys:
-		print 'duplicate key was found'
 		return
 
 	for i in xrange(0,len(degKeys)):
@@ -34,48 +33,55 @@ def insertKey(key, degKeys, degCounts):
 	return
 
 
-def addEdge(adjList, target, actor):
+def addEdge(adjList, target, actor, totalNodes):
+	if (target not in adjList):
+		totalNodes += 1
+
 	adjList[target][0] += 1
 	adjList[target][1].add(actor)
-	print target+"'s neighbors: " + str(adjList[target][1])
+
+	if (actor not in adjList):
+		totalNodes += 1
 	adjList[actor][0] += 1
 	adjList[actor][1].add(target)
-	print actor+"'s neighbors: " + str(adjList[actor][1])
 
-
-# def removeKey(key, degKeys):
-# 	degKeys.pop(key)
+	return totalNodes
 
 
 # Updates degree keys and counts when some number of records
 # must be pruned from the window
-def removeUpdate(pruned,adjList,degKeys,degCounts):
+def removeUpdate(pruned,adjList,degKeys,degCounts,totalNodes):
 	
 	print "prune: " + str(pruned)
 	for record in pruned:
 		target = record[0]
-		print target
 		actor = record[1]
-		print actor
 
 		
 		people = (target, actor)
 		for i in xrange(0, len(people)):
-			print adjList[adjList.keys()[0]]
-			print adjList[adjList.keys()[1]]
+			# print adjList[adjList.keys()[0]]
+			# print adjList[adjList.keys()[1]]
 			person = people[i] 
-			print 'person ' + str(person)
 			opp = people[int(not i)]
-			print 'opp ' + str(opp)
 			currDeg = adjList[person][0]
+			if (currDeg == 1):
+				totalNodes -= 1
+			print 'updated total:' + str(totalNodes)
 			if (degCounts[currDeg] == 1):
 				degKeys.remove(currDeg)
 				degCounts.pop(currDeg)
 			else:
 				degCounts[currDeg] -= 1
-			adjList[person][0] = currDeg - 1 if (currDeg > 1) else 0
+			if (currDeg == 1):
+				adjList.pop(person)
+			else:
+				adjList[person][0] = currDeg - 1
+				adjList[person][1].remove(opp)
 			print adjList[target][1]
-			adjList[person][1].remove(opp)
+			
+
+	return totalNodes
 
 
 
@@ -111,13 +117,12 @@ def updateForInsert(adjList, target, actor, degCounts, degKeys):
 
 
 
-def getMedian(totalDegrees, degCounts, degKeys):
-	print "total nodes %d" % totalDegrees
+def getMedian(totalNodes, degCounts, degKeys):
 	for key in degCounts:
 		print "%d:%d" % (key,degCounts[key])
 	print "keys: "  + str(degKeys)
-	isEven = totalDegrees%2 == 0
-	remaining = totalDegrees/2
+	isEven = totalNodes%2 == 0
+	remaining = totalNodes/2
 	for i in xrange(0,len(degKeys)):
 		key = degKeys[i]
 		diff = remaining - degCounts[key]
@@ -148,12 +153,12 @@ def old(newDate, window):
 	return False
 
 
-data = open('../data-gen/requiresPruning.txt', 'r')
+data = open('../data-gen/requiresInsert.txt', 'r')
 adjList = defaultdict(lambda: [0, set()])
 window = []
 degKeys = []
 degCounts = defaultdict(int)
-totalDegrees = 0
+totalNodes = 0
 
 ct = 0
 # 2016-03-28T23:23:12Z
@@ -166,33 +171,28 @@ for line in data:
 	
 	# Record is new
 	if (new(date, window)):
-		# print 'new!'
-		for person in (target,actor):
-			if (person not in adjList):
-				totalDegrees += 1
 		idx = pruneIdx(window,date)
 		print "idx: %d" % idx
-		removeUpdate(window[:idx],adjList,degKeys,degCounts)
+		print "total nodes before: %d" % totalNodes
+		totalNodes = removeUpdate(window[:idx],adjList,degKeys,degCounts,totalNodes)
+		print "total nodes after %d" % totalNodes
+
 		window = window[idx:]
 		window.append((target,actor,date))
-		addEdge(adjList, target, actor)
+		totalNodes = addEdge(adjList, target, actor, totalNodes)
 		updateForInsert(adjList, target, actor, degCounts, degKeys)
 	# Record is out of order
 	else:
 		print 'out of order'
 		if(old(date, window)):
 			continue
-		# Record must be inserted somewhere within the window
-		for person in (target,actor):
-			if (person not in adjList):
-				totalDegrees += 1
-		addEdge(adjList, target, actor)
+		totalNodes = addEdge(adjList, target, actor, totalNodes)
 		updateForInsert(adjList, target, actor, degCounts, degKeys)
-		insertToWindow((target,actor,date))
+		insertToWindow((target,actor,date), window)
 
 
-
-	print "median: " + str(getMedian(totalDegrees, degCounts, degKeys)) + "\n"
+	print "median: " + str(getMedian(totalNodes, degCounts, degKeys)) + "\n"
+	print "total nodes: " + str(totalNodes)
 	# print window
 	# print degKeys
 
