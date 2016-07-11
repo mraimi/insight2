@@ -13,7 +13,9 @@ def windowCheck(newDate, window):
 
 # Inserts an out of order record
 def insertToWindow(record, window):
-	return None
+	for i in xrange(0,len(window)):
+		if (record[2]-window[i][3].total_seconds() <= 0):
+			window.insert(i)
 
 def insertKey(key, degKeys):
 	for i in xrange(0,len(degKeys)):
@@ -26,6 +28,9 @@ def addEdge(adjList, target, actor):
 	adjList[actor][0] += 1
 	adjList[actor][1].add(target)
 
+
+# Updates degree keys and counts when some number of records
+# must be pruned from the window
 def removeUpdate(pruned,adjList,degKeys,degCounts):
 	for record in pruned:
 		target = record[0]
@@ -46,8 +51,10 @@ def pruneIdx(window, newDate):
 		if ((newDate - window[i]).total_seconds < 60):
 			return i
 
-def updateOnInsert(adjList, target, actor, degCounts, degKeys):
-	#target
+
+# Updates degree keys and counts when inserting out of order records
+# in the window
+def updateForInsert(adjList, target, actor, degCounts, degKeys):
 	for person in (target,actor):
 		d = adjList[person][0]
 		if (degCounts[d-1] == 1):
@@ -62,8 +69,16 @@ def updateOnInsert(adjList, target, actor, degCounts, degKeys):
 
 
 
-def getMedian(nums):
-	return None
+def getMedian(totalDegrees, degCounts, degKeys):
+	isEven = totalDegrees%2 == 0
+	remaining = totalDegrees/2 - 1
+	for key in degKeys:
+		if (remaining - degCounts[key] <= 0):
+			return key
+		else:
+			remaining -= degCounts[key] 
+
+
 
 def new(date, window):
 	newest = window[len(window)]
@@ -82,17 +97,12 @@ def old(date, window):
 	return False
 
 
-
-
-
-# theory for rolling median found here:
-# http://stackoverflow.com/questions/10657503/find-running-median-from-a-stream-of-integers
-
 data = open('../data-gen/venmo-trans.txt', 'r')
 adjList = defaultdict(lambda: [0, set()])
 window = []
 degKeys = []
 degCounts = defaultdict(int)
+totalDegrees = 0
 
 
 # 2016-03-28T23:23:12Z
@@ -100,28 +110,34 @@ for line in data:
 	record = json.loads(line.strip())
 	target, actor, date = record['target'], record['actor'], datetime.strptime(record['created_time'], '%Y-%m-%dT%H:%M:%SZ')
 	
-	# Case where new record can safely be added to the window
-	# if (windowCheck(date, window)):
-	# 	window.append((target,actor,date))
-	# elif ((date - oldDate).total_seconds < 60)
-	# 	
-
+	
 	# Record is new
 	if (new(date, windows)):
+		for person in (target,actor):
+			if (person not in adjList):
+				totalDegrees += 1
 		idx = pruneIdx(window,date)
 		removeUpdate(window[:idx],adjList,degKeys,degCounts)
 		window = window[idx:]
 		window.append((target,actor,date))
+
 	# Record is out of order
 	else:
 		if(old(date, window)):
 			continue
 		# Record must be inserted somewhere within the window
+		for person in (target,actor):
+			if (person not in adjList):
+				totalDegrees += 1
 		addEdge(adjList, target, actor)
-		updateOnInsert(adjList, target, actor, degCounts, degKeys)
-		insertToWindow()
+		updateForInsert(adjList, target, actor, degCounts, degKeys)
+		insertToWindow((target,actor,date))
 
-	print window
+
+
+	print getMedian(totalDegrees, degCounts, degKeys)
+
+	# print window
 	sys.exit()
 
 data.close()
@@ -130,8 +146,4 @@ log.close()
 # date1 = datetime.strptime('2016-03-28T23:23:19Z','%Y-%m-%dT%H:%M:%SZ')
 # date2 = datetime.strptime('2016-03-28T23:23:12Z','%Y-%m-%dT%H:%M:%SZ')
 # print (date1-date2).total_seconds()
-
-
-
-
 
