@@ -6,7 +6,7 @@ from collections import defaultdict
 # Checks if the new record can be inserted without pruning or reordering
 def windowCheck(newDate, window):
 	oldest = window[0]
-	if ((newDate - oldest).total_seconds < 60):
+	if ((newDate - oldest).total_seconds() < 60):
 		return True
 	
 	return False
@@ -18,35 +18,64 @@ def insertToWindow(record, window):
 			window.insert(i)
 
 def insertKey(key, degKeys, degCounts):
-	if (not len(degKeys)):
-		degKeys.append(key)
+	# print 'key to add: ' + str(key)
 
-	if key in degCounts:
+	if key in degKeys:
+		print 'duplicate key was found'
 		return
 
 	for i in xrange(0,len(degKeys)):
-		if (degKeys[i] >= key):
+		if (degKeys[i] > key):
 			degKeys.insert(i,key)
+
+			return
+	degKeys.append(key)
+
+	return
+
 
 def addEdge(adjList, target, actor):
 	adjList[target][0] += 1
 	adjList[target][1].add(actor)
+	print target+"'s neighbors: " + str(adjList[target][1])
 	adjList[actor][0] += 1
 	adjList[actor][1].add(target)
+	print actor+"'s neighbors: " + str(adjList[actor][1])
+
+
+# def removeKey(key, degKeys):
+# 	degKeys.pop(key)
 
 
 # Updates degree keys and counts when some number of records
 # must be pruned from the window
 def removeUpdate(pruned,adjList,degKeys,degCounts):
+	
+	print "prune: " + str(pruned)
 	for record in pruned:
 		target = record[0]
-		action = record[1]
-		currDeg = adjList[target][0]
+		print target
+		actor = record[1]
+		print actor
 
-		for person in (target, actor):
-			if (degCounts[adjList[person][0]] == 1):
-				removeKey(adjList[person][0], degKeys)
-			adjList[target][0] = currDeg - 1 if (currDeg > 1) else 0
+		
+		people = (target, actor)
+		for i in xrange(0, len(people)):
+			print adjList[adjList.keys()[0]]
+			print adjList[adjList.keys()[1]]
+			person = people[i] 
+			print 'person ' + str(person)
+			opp = people[int(not i)]
+			print 'opp ' + str(opp)
+			currDeg = adjList[person][0]
+			if (degCounts[currDeg] == 1):
+				degKeys.remove(currDeg)
+				degCounts.pop(currDeg)
+			else:
+				degCounts[currDeg] -= 1
+			adjList[person][0] = currDeg - 1 if (currDeg > 1) else 0
+			print adjList[target][1]
+			adjList[person][1].remove(opp)
 
 
 
@@ -54,8 +83,10 @@ def removeUpdate(pruned,adjList,degKeys,degCounts):
 # and returns that index
 def pruneIdx(window, newDate):
 	for i in xrange(0,len(window)):
-		if ((newDate - window[i]).total_seconds < 60):
+		if ((newDate - window[i][2]).total_seconds() < 60):
 			return i
+
+	return len(window)
 
 
 # Updates degree keys and counts when inserting out of order records
@@ -63,76 +94,84 @@ def pruneIdx(window, newDate):
 def updateForInsert(adjList, target, actor, degCounts, degKeys):
 	for person in (target,actor):
 		d = adjList[person][0]
-		if (d-1 > 0):
+		print person + " deg: %d" % d
+		if (d-1 > 0 and degCounts[d-1] > 0):
 			if (degCounts[d-1] == 1):
 				try:
 					degKeys.remove(d-1)
+					degCounts.pop(d-1)
 				except:
 					print "There was an error removing a key (%d) that doesn't exist" % d-1
-		
-			degCounts[d-1] -= 1
-		degCounts[d] += 1
-		if (d not in degKeys):
-			insertKey(d, degKeys, degCounts)
+			else:
+				degCounts[d-1] -= 1
+		if (d > 0):
+			degCounts[d] += 1
+		# print 'degCounts: ' + str(degCounts.keys())
+		insertKey(d, degKeys, degCounts)
 
 
 
 def getMedian(totalDegrees, degCounts, degKeys):
-	print "total degrees %d" % totalDegrees
+	print "total nodes %d" % totalDegrees
 	for key in degCounts:
 		print "%d:%d" % (key,degCounts[key])
-	print degKeys
+	print "keys: "  + str(degKeys)
 	isEven = totalDegrees%2 == 0
-	remaining = totalDegrees/2 - 1
-	for key in degKeys:
-		if (remaining - degCounts[key] <= 0):
-			return key
+	remaining = totalDegrees/2
+	for i in xrange(0,len(degKeys)):
+		key = degKeys[i]
+		diff = remaining - degCounts[key]
+		if (diff <= 0):
+			return (key+degKeys[i+1])/2.0 if (isEven and diff == 0) else key
 		else:
 			remaining -= degCounts[key]
 
 
 
-def new(date, window):
+def new(newDate, window):
 	if (not len(window)):
 		return True
 
-	newest = window[len(window)-1]
+	newest = window[len(window)-1][2]
 	# new data is newer than the newest in the window
-	if ((newDate - newest).total_seconds > 0):
+	if ((newDate - newest).total_seconds() >= 0):
 		return True
 	
 	return False
 
-def old(date, window):
-	oldest = window[0]
+def old(newDate, window):
+	oldest = window[0][2]
 	# new data is newer than the newest in the window
-	if ((newDate - oldest).total_seconds < 0):
+	if ((newDate - oldest).total_seconds() < 0):
 		return True
 	
 	return False
 
 
-data = open('../data-gen/venmo-trans.txt', 'r')
+data = open('../data-gen/requiresPruning.txt', 'r')
 adjList = defaultdict(lambda: [0, set()])
 window = []
 degKeys = []
 degCounts = defaultdict(int)
 totalDegrees = 0
 
-
+ct = 0
 # 2016-03-28T23:23:12Z
 for line in data:
+	ct += 1
+
 	record = json.loads(line.strip())
 	target, actor, date = record['target'], record['actor'], datetime.strptime(record['created_time'], '%Y-%m-%dT%H:%M:%SZ')
 	
 	
 	# Record is new
 	if (new(date, window)):
-		print 'new!'
+		# print 'new!'
 		for person in (target,actor):
 			if (person not in adjList):
 				totalDegrees += 1
 		idx = pruneIdx(window,date)
+		print "idx: %d" % idx
 		removeUpdate(window[:idx],adjList,degKeys,degCounts)
 		window = window[idx:]
 		window.append((target,actor,date))
@@ -140,6 +179,7 @@ for line in data:
 		updateForInsert(adjList, target, actor, degCounts, degKeys)
 	# Record is out of order
 	else:
+		print 'out of order'
 		if(old(date, window)):
 			continue
 		# Record must be inserted somewhere within the window
@@ -152,12 +192,14 @@ for line in data:
 
 
 
-	print getMedian(totalDegrees, degCounts, degKeys)
-	print window
-	sys.exit()
+	print "median: " + str(getMedian(totalDegrees, degCounts, degKeys)) + "\n"
+	# print window
+	# print degKeys
+
+	if (ct == 5):
+		break
 
 data.close()
-log.close()
 
 # date1 = datetime.strptime('2016-03-28T23:23:19Z','%Y-%m-%dT%H:%M:%SZ')
 # date2 = datetime.strptime('2016-03-28T23:23:12Z','%Y-%m-%dT%H:%M:%SZ')
