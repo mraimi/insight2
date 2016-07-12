@@ -7,6 +7,10 @@ def getSeconds(date):
     return str(int((date-datetime.datetime(1970,1,1)).total_seconds()))
 
 def getEdgeCount(edgeCounts, target, actor):
+    if tuple(sorted((target,actor))) not in edgeCounts:
+
+        return 0
+
     return edgeCounts[tuple(sorted((target,actor)))]
 
 # Checks if the new record can be inserted without pruning or reordering
@@ -39,16 +43,18 @@ def insertKey(key, degKeys):
 
 def addEdge(adjList, target, actor, date, totalNodes, edgeCounts):
     # target = target + getSeconds()
-    if (target not in adjList):
-        totalNodes += 1
+    if getEdgeCount(edgeCounts,target,actor) == 0:
+        if target not in adjList:
+            totalNodes += 1
 
-    adjList[target][0] += 1
-    adjList[target][1].add(actor)
+        adjList[target][0] += 1
+        adjList[target][1].add(actor)
 
-    if actor not in adjList:
-        totalNodes += 1
-    adjList[actor][0] += 1
-    adjList[actor][1].add(target)
+        if actor not in adjList:
+            totalNodes += 1
+
+        adjList[actor][0] += 1
+        adjList[actor][1].add(target)
 
     edgeCounts[tuple(sorted((target,actor)))] += 1
 
