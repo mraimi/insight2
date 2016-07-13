@@ -43,8 +43,7 @@ def insertKey(key, degKeys):
     return
 
 
-def addEdge(adjList, target, actor, date, totalNodes, edgeCounts):
-    # target = target + getSeconds()
+def addEdge(adjList, target, actor, totalNodes, edgeCounts):
     if getEdgeCount(edgeCounts,target,actor) == 0:
         if target not in adjList:
             totalNodes += 1
@@ -90,7 +89,6 @@ def removeUpdate(toPrune,adjList,degKeys,degCounts,totalNodes, edgeCounts):
                 if currDeg - 1:
                     degCounts[currDeg - 1] += 1
                     insertKey(currDeg - 1, degKeys)
-
                 if currDeg == 1:
                     totalNodes -= 1
                     adjList.pop(person)
@@ -117,7 +115,6 @@ def pruneIdx(window, newDate):
 
 
 # Updates degree keys and counts AFTER adding the new edge
-# TODO: update to use edgeCounts? Fix degCounts - they're going negative
 def updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists):
     if not exists:
         for person in (target,actor):
@@ -198,7 +195,7 @@ for line in data:
         totalNodes = removeUpdate(window[:idx],adjList,degKeys,degCounts,totalNodes,edgeCounts)
         window = window[idx:]
         window.append((target,actor,date))
-        totalNodes = addEdge(adjList, target, actor, date, totalNodes, edgeCounts)
+        totalNodes = addEdge(adjList, target, actor, totalNodes, edgeCounts)
         updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
     # Record is out of order
     else:
@@ -206,14 +203,11 @@ for line in data:
             print str(getMedian(totalNodes, degCounts, degKeys))
             continue
         exists = tuple(sorted((target, actor))) in edgeCounts
-        totalNodes = addEdge(adjList, target, actor, date, totalNodes, edgeCounts)
+        totalNodes = addEdge(adjList, target, actor, totalNodes, edgeCounts)
         updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
         insertToWindow((target,actor,date), window)
 
 
     print str(getMedian(totalNodes, degCounts, degKeys))
-
-    # if (ct == 5):
-    # 	break
 
 data.close()
