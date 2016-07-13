@@ -69,7 +69,8 @@ def removeUpdate(toPrune,adjList,degKeys,degCounts,totalNodes, edgeCounts):
         actor = record[1]
         edgeCt = getEdgeCount(edgeCounts,target,actor)
         if edgeCt == 0:
-            sys.exit('Graph is inconsistent. Edge count says this edge should not exist')
+            return totalNodes
+            # sys.exit('Graph is inconsistent. Edge count says this edge should not exist')
 
         if  edgeCt > 0 and edgeCt == 1:
             people = (target, actor)
@@ -116,21 +117,22 @@ def pruneIdx(window, newDate):
 
 # Updates degree keys and counts AFTER adding the new edge
 # TODO: update to use edgeCounts? Fix degCounts - they're going negative
-def updateKeysCounts(adjList, target, actor, degCounts, degKeys):
-    for person in (target,actor):
-        d = adjList[person][0]
-        if d-1 in degCounts and d-1 > 0 and degCounts[d-1] > 0:
-            if degCounts[d-1] == 1:
-                try:
-                    degKeys.remove(d-1)
-                    degCounts.pop(d-1)
-                except:
-                    print "There was an error removing a key (%d) that doesn't exist" % d-1
-            else:
-                degCounts[d-1] -= 1
-        if d > 0:
-            degCounts[d] += 1
-        insertKey(d, degKeys)
+def updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists):
+    if not exists:
+        for person in (target,actor):
+            d = adjList[person][0]
+            if d-1 in degCounts and d-1 > 0 and degCounts[d-1] > 0:
+                if degCounts[d-1] == 1:
+                    try:
+                        degKeys.remove(d-1)
+                        degCounts.pop(d-1)
+                    except:
+                        print "There was an error removing a key (%d) that doesn't exist" % d-1
+                else:
+                    degCounts[d-1] -= 1
+            if d > 0:
+                degCounts[d] += 1
+            insertKey(d, degKeys)
 
 
 
@@ -197,14 +199,15 @@ for line in data:
         window = window[idx:]
         window.append((target,actor,date))
         totalNodes = addEdge(adjList, target, actor, date, totalNodes, edgeCounts)
-        updateKeysCounts(adjList, target, actor, degCounts, degKeys)
+        updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
     # Record is out of order
     else:
         if(old(date, window)):
             print "median: " + str(getMedian(totalNodes, degCounts, degKeys))
             continue
+        exists = tuple(sorted((target, actor))) in edgeCounts
         totalNodes = addEdge(adjList, target, actor, date, totalNodes, edgeCounts)
-        updateKeysCounts(adjList, target, actor, degCounts, degKeys)
+        updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
         insertToWindow((target,actor,date), window)
 
 
