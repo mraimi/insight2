@@ -2,6 +2,7 @@ import sys
 import json
 from datetime import datetime
 from collections import defaultdict
+import argparse
 
 def getSeconds(date):
     return str(int((date-datetime.datetime(1970,1,1)).total_seconds()))
@@ -170,9 +171,11 @@ def old(newDate, window):
     return False
 
 
-# data = open('../data-gen/requiresPruning.txt', 'r')
-data = open('../data-gen/venmo-trans.txt', 'r')
-# data = open('../data-gen/clayton.txt', 'r')
+if len(sys.argv) < 2 or len(sys.argv) > 3:
+    print "Usage: python ./rolling_median.py INPUT OUTPUT"
+    sys.exit()
+data = open(sys.argv[1], 'r')
+output = open(sys.argv[2], 'wb')
 adjList = defaultdict(lambda: [0, set()])
 window = []
 degKeys = []
@@ -189,7 +192,7 @@ for line in data:
 
 
     # Record is new
-    if (new(date, window)):
+    if new(date, window):
         exists = tuple(sorted((target,actor))) in edgeCounts
         idx = pruneIdx(window,date)
         totalNodes = removeUpdate(window[:idx],adjList,degKeys,degCounts,totalNodes,edgeCounts)
@@ -199,15 +202,15 @@ for line in data:
         updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
     # Record is out of order
     else:
-        if(old(date, window)):
-            print str(getMedian(totalNodes, degCounts, degKeys))
+        if old(date, window):
+            output.write(str(getMedian(totalNodes, degCounts, degKeys)) + "\n")
             continue
         exists = tuple(sorted((target, actor))) in edgeCounts
         totalNodes = addEdge(adjList, target, actor, totalNodes, edgeCounts)
         updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
         insertToWindow((target,actor,date), window)
 
-
-    print str(getMedian(totalNodes, degCounts, degKeys))
+    output.write(str(getMedian(totalNodes, degCounts, degKeys)) + "\n")
 
 data.close()
+output.close()
