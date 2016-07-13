@@ -27,6 +27,8 @@ def insertToWindow(record, window):
         if (record[2]-window[i][2]).total_seconds() <= 0:
             window.insert(i, record)
 
+            return
+
 def insertKey(key, degKeys):
     if key in degKeys:
         return
@@ -69,8 +71,7 @@ def removeUpdate(toPrune,adjList,degKeys,degCounts,totalNodes, edgeCounts):
         actor = record[1]
         edgeCt = getEdgeCount(edgeCounts,target,actor)
         if edgeCt == 0:
-            return totalNodes
-            # sys.exit('Graph is inconsistent. Edge count says this edge should not exist')
+            sys.exit('Graph is inconsistent. Edge count says this edge should not exist')
 
         if  edgeCt > 0 and edgeCt == 1:
             people = (target, actor)
@@ -137,8 +138,6 @@ def updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exi
 
 
 def getMedian(totalNodes, degCounts, degKeys):
-    # for key in degCounts:
-        # print "%d:%d" % (key,degCounts[key])
     isEven = totalNodes%2 == 0
     remaining = totalNodes/2
     for i in xrange(0,len(degKeys)):
@@ -176,6 +175,7 @@ def old(newDate, window):
 
 # data = open('../data-gen/requiresPruning.txt', 'r')
 data = open('../data-gen/venmo-trans.txt', 'r')
+# data = open('../data-gen/clayton.txt', 'r')
 adjList = defaultdict(lambda: [0, set()])
 window = []
 degKeys = []
@@ -203,7 +203,7 @@ for line in data:
     # Record is out of order
     else:
         if(old(date, window)):
-            print "median: " + str(getMedian(totalNodes, degCounts, degKeys))
+            print str(getMedian(totalNodes, degCounts, degKeys))
             continue
         exists = tuple(sorted((target, actor))) in edgeCounts
         totalNodes = addEdge(adjList, target, actor, date, totalNodes, edgeCounts)
