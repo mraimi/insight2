@@ -211,7 +211,7 @@ for line in data:
         insertToWindow((target,actor,date), window)
 
 
-    print "median: " + str(getMedian(totalNodes, degCounts, degKeys))
+    print str(getMedian(totalNodes, degCounts, degKeys))
 
     # if (ct == 5):
     # 	break
