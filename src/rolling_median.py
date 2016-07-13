@@ -143,9 +143,9 @@ def getMedian(totalNodes, degCounts, degKeys):
         diff = remaining - degCounts[key]
         if diff <= 0:
             if len(degKeys) == 1:
-                return key
+                return float(key)
             else:
-                return (key+degKeys[i+1])/2.0 if (isEven and diff == 0) else key
+                return (float(key+degKeys[i+1]))/2.0 if (isEven and diff == 0) else float(key)
         else:
             remaining -= degCounts[key]
 
@@ -203,14 +203,14 @@ for line in data:
     # Record is out of order
     else:
         if old(date, window):
-            output.write(str(getMedian(totalNodes, degCounts, degKeys)) + "\n")
+            output.write(str("%.2f\n" % getMedian(totalNodes, degCounts, degKeys)))
             continue
         exists = tuple(sorted((target, actor))) in edgeCounts
         totalNodes = addEdge(adjList, target, actor, totalNodes, edgeCounts)
         updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
         insertToWindow((target,actor,date), window)
 
-    output.write(str(getMedian(totalNodes, degCounts, degKeys)) + "\n")
+    output.write(str("%.2f\n" % getMedian(totalNodes, degCounts, degKeys)))
 
 data.close()
 output.close()
