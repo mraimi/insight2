@@ -2,11 +2,12 @@ import sys
 import json
 from datetime import datetime
 from collections import defaultdict
-import argparse
 
+# Gets seconds of a datetime object since 1/1/1970
 def getSeconds(date):
     return str(int((date-datetime.datetime(1970,1,1)).total_seconds()))
 
+# Gets the counts of how many times a target/actor pair is in the graph
 def getEdgeCount(edgeCounts, target, actor):
     if tuple(sorted((target,actor))) not in edgeCounts:
 
@@ -22,7 +23,7 @@ def windowCheck(newDate, window):
 
     return False
 
-# Inserts an out of order record
+# Inserts an out of order record into the window
 def insertToWindow(record, window):
     for i in xrange(0,len(window)):
         if (record[2]-window[i][2]).total_seconds() <= 0:
@@ -30,6 +31,8 @@ def insertToWindow(record, window):
 
             return
 
+# Attempts to insert a key to the set of integers that
+# represent current degrees of nodes in the graph
 def insertKey(key, degKeys):
     if key in degKeys:
         return
@@ -43,7 +46,8 @@ def insertKey(key, degKeys):
 
     return
 
-
+# Adds an edge to the graph and updates the total node count
+# and target/actor edge counts
 def addEdge(adjList, target, actor, totalNodes, edgeCounts):
     if getEdgeCount(edgeCounts,target,actor) == 0:
         if target not in adjList:
@@ -80,7 +84,6 @@ def removeUpdate(toPrune,adjList,degKeys,degCounts,totalNodes, edgeCounts):
                 opp = people[int(not i)]
                 currDeg = adjList[person][0]
 
-                # delete entries from degree keys and counts
                 if degCounts[currDeg] == 1:
                     degKeys.remove(currDeg)
                     degCounts.pop(currDeg)
@@ -99,14 +102,13 @@ def removeUpdate(toPrune,adjList,degKeys,degCounts,totalNodes, edgeCounts):
                     adjList[person][1].remove(opp)
             edgeCounts.pop(tuple(sorted((target,actor))))
         else:
+            # Case when there are multiple edges for the same target/actor pair
             edgeCounts[tuple(sorted((target,actor)))] -= 1
 
     return totalNodes
 
-
-
-# Searches for the first record that doesn't violate the 60 second window constraint
-# and returns that index
+# Searches for the first record that doesn't violate the
+# 60 second window constraint and returns that index
 def pruneIdx(window, newDate):
     for i in xrange(0,len(window)):
         if (newDate - window[i][2]).total_seconds() < 60:
@@ -114,9 +116,8 @@ def pruneIdx(window, newDate):
 
     return len(window)
 
-
 # Updates degree keys and counts AFTER adding the new edge
-def updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists):
+def updateKeysCounts(adjList, target, actor, degCounts, degKeys, exists):
     if not exists:
         for person in (target,actor):
             d = adjList[person][0]
@@ -133,8 +134,8 @@ def updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exi
                 degCounts[d] += 1
             insertKey(d, degKeys)
 
-
-
+# Returns the median using the
+# sorted degree keys and degree counts
 def getMedian(totalNodes, degCounts, degKeys):
     isEven = totalNodes%2 == 0
     remaining = totalNodes/2
@@ -149,31 +150,34 @@ def getMedian(totalNodes, degCounts, degKeys):
         else:
             remaining -= degCounts[key]
 
-
-
+# Returns whether record's date indicates
+# it should be added/inserted to the current window
 def new(newDate, window):
-    if (not len(window)):
+    if not len(window):
         return True
 
     newest = window[len(window)-1][2]
-    # new data is newer than the newest in the window
-    if ((newDate - newest).total_seconds() >= 0):
+    # record is newer than the newest in the window
+    if (newDate - newest).total_seconds() >= 0:
         return True
 
+    # Out of order case
     return False
 
+# Returns boolean indicating if record's date
+# is so old it should be disregarded
 def old(newDate, window):
     oldest = window[0][2]
-    # new data is newer than the newest in the window
-    if ((newDate - oldest).total_seconds() < 0):
+    # record is older than the oldest in the window
+    if (newDate - oldest).total_seconds() < 0:
         return True
 
     return False
-
 
 if len(sys.argv) < 2 or len(sys.argv) > 3:
     print "Usage: python ./rolling_median.py INPUT OUTPUT"
     sys.exit()
+
 data = open(sys.argv[1], 'r')
 output = open(sys.argv[2], 'wb')
 adjList = defaultdict(lambda: [0, set()])
@@ -182,16 +186,14 @@ degKeys = []
 degCounts = defaultdict(int)
 edgeCounts = defaultdict(int)
 totalNodes = 0
-ct = 0
+
 for line in data:
-    ct += 1
     record = json.loads(line.strip())
     if len(record) != 3:
         continue
     target, actor, date = record['target'], record['actor'], datetime.strptime(record['created_time'], '%Y-%m-%dT%H:%M:%SZ')
 
-
-    # Record is new
+    # Record is new, may need window pruning
     if new(date, window):
         exists = tuple(sorted((target,actor))) in edgeCounts
         idx = pruneIdx(window,date)
@@ -199,15 +201,17 @@ for line in data:
         window = window[idx:]
         window.append((target,actor,date))
         totalNodes = addEdge(adjList, target, actor, totalNodes, edgeCounts)
-        updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
+        updateKeysCounts(adjList, target, actor, degCounts, degKeys, exists)
     # Record is out of order
     else:
+        # Case where current node is too old for the window
         if old(date, window):
             output.write(str("%.2f\n" % getMedian(totalNodes, degCounts, degKeys)))
             continue
+        # Case where node needs to be inserted into window
         exists = tuple(sorted((target, actor))) in edgeCounts
         totalNodes = addEdge(adjList, target, actor, totalNodes, edgeCounts)
-        updateKeysCounts(adjList, target, actor, degCounts, degKeys, edgeCounts, exists)
+        updateKeysCounts(adjList, target, actor, degCounts, degKeys, exists)
         insertToWindow((target,actor,date), window)
 
     output.write(str("%.2f\n" % getMedian(totalNodes, degCounts, degKeys)))
