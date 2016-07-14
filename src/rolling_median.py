@@ -74,11 +74,13 @@ def removeUpdate(toPrune,adjList,degKeys,degCounts,totalNodes, edgeCounts):
         target = record[0]
         actor = record[1]
         edgeCt = getEdgeCount(edgeCounts,target,actor)
+
         if edgeCt == 0:
             sys.exit('Graph is inconsistent. Edge count says this edge should not exist')
 
         if  edgeCt > 0 and edgeCt == 1:
             people = (target, actor)
+
             for i in xrange(0, len(people)):
                 person = people[i]
                 opp = people[int(not i)]
@@ -90,9 +92,12 @@ def removeUpdate(toPrune,adjList,degKeys,degCounts,totalNodes, edgeCounts):
                 else:
                     degCounts[currDeg] -= 1
                     insertKey(currDeg, degKeys)
+
                 if currDeg - 1:
                     degCounts[currDeg - 1] += 1
                     insertKey(currDeg - 1, degKeys)
+
+                # Prune now disconnected node
                 if currDeg == 1:
                     totalNodes -= 1
                     adjList.pop(person)
