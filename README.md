@@ -43,6 +43,8 @@ dictionary to find the median. In short we iterate through the keys, using each 
 to find the degree where the median lies. It runs in time linear in the size of the degree key list
 which in the big dataset of 1800 was of size < 20.
 
+Thanks for taking the time to consider me for the fellowship!
+
 
 
 
