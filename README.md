@@ -29,13 +29,11 @@ e.g. there are nodes of degree 3, 6, 7, and so on. It's always sorted.
 pair is received. The size of this data structure is linear in the number of edges and vertices
 of the graph multiplied by some factor d, which represents the highest number of records made by a
 single target/actor pair. In Big-O it would be O(d(V + E)). This implementation would be prohibitive in
-the case where a few power users make tons of transactions.
-
-An alternative implementation to this would be to remove the old record from
-the window and insert the new one in the correct position. This would have linear processing cost
-in the size of records in the window but could reduce the memory footprint by a constant
-factor. This implementation would be somewhat prohibitive in the case of a window with
-many records all fitting within the 60 second constraint as an insertion
+the case where a few power users make tons of transactions. An alternative implementation to this would 
+be to remove the old record from the window and insert the new one in the correct position. 
+This would have linear processing cost in the size of records in the window but could 
+reduce the memory footprint by a constant factor. This implementation would be somewhat prohibitive 
+in the case of a window with many records all fitting within the 60 second constraint as an insertion
 
 ##Calculating the median
 If we imagine all the possible degree values in a sorted list we could use the size of the

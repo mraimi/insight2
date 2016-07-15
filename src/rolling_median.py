@@ -194,9 +194,10 @@ totalNodes = 0
 
 for line in data:
     record = json.loads(line.strip())
-    if len(record) != 3:
+    try:
+        target, actor, date = record['target'], record['actor'], datetime.strptime(record['created_time'], '%Y-%m-%dT%H:%M:%SZ')
+    except:
         continue
-    target, actor, date = record['target'], record['actor'], datetime.strptime(record['created_time'], '%Y-%m-%dT%H:%M:%SZ')
 
     # Record is new, may need window pruning
     if new(date, window):
